@@ -1,7 +1,7 @@
 # LLM Cost Autopilot
 
 > Zero-shot complexity classifier that routes LLM requests to the cheapest
-> capable model — and gets smarter the more it's used.
+> capable model, and gets smarter the more it's used.
 
 [![CI](https://github.com/adel-saoud/llm-cost-autopilot/actions/workflows/ci.yml/badge.svg)](https://github.com/adel-saoud/llm-cost-autopilot/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
@@ -17,37 +17,37 @@ capital of France?" lookup costs the same as a multi-step architectural
 analysis if you route everything to the same model.
 
 **This project fixes that.** It classifies each request by semantic
-complexity using a zero-shot HuggingFace pipeline — no training data, no
-labelled dataset — routes it to the cheapest tier capable of handling it,
+complexity using a zero-shot HuggingFace pipeline (no training data, no
+labelled dataset), routes it to the cheapest tier capable of handling it,
 then verifies the decision was correct. Routing failures feed a growing
 correction dataset. The system improves itself.
 
 > Inspired by the cost visibility gap I experienced running DaiLY at
-> Decathlon France — 25K users where every architecture decision had a
-> direct cost impact. This is the routing layer I wished we had.
+> Decathlon France, where 25K users meant every architecture decision
+> had a direct cost impact. This is the routing layer I wished we had.
 
-![Dashboard — 202 routed requests, $0.1108 saved (21.4%), 98.8% routing accuracy, 1 correction logged; cumulative-savings area chart and tier-distribution donut both visible. Data is from the live 200-request load test against real Ollama (qwen2.5:0.5b + llama3.2:3b)](docs/dashboard.png)
+![Dashboard: 202 routed requests, $0.1108 saved (21.4%), 98.8% routing accuracy, 1 correction logged; cumulative-savings area chart and tier-distribution donut both visible. Data is from the live 200-request load test against real Ollama (qwen2.5:0.5b + llama3.2:3b)](docs/dashboard.png)
 
 ---
 
-## Try it — no API key needed
+## Try it (no API key needed)
 
 ```bash
 git clone https://github.com/adel-saoud/llm-cost-autopilot
 cd llm-cost-autopilot
 
-# Local stack — autopilot API + Ollama, fully offline
+# Local stack: autopilot API + Ollama, fully offline
 docker compose up -d
 docker compose exec ollama ollama pull qwen2.5:0.5b
 docker compose exec ollama ollama pull llama3.2:3b
 
-# Send a simple request — autopilot picks qwen2.5:0.5b
+# Send a simple request; autopilot picks qwen2.5:0.5b
 curl -s -X POST http://localhost:8000/v1/chat/completions \
   -H 'content-type: application/json' \
   -d '{"messages":[{"role":"user","content":"What is the capital of France?"}]}' \
   -D - | grep -i '^x-autopilot'
 
-# Send a complex request — autopilot picks llama3.2:3b
+# Send a complex request; autopilot picks llama3.2:3b
 curl -s -X POST http://localhost:8000/v1/chat/completions \
   -H 'content-type: application/json' \
   -d '{"messages":[{"role":"user","content":"Analyse the tradeoffs between event-driven and request/response architectures for a multi-tenant SaaS billing pipeline."}]}' \
@@ -82,14 +82,14 @@ Latency p50 / p95             10.3s / 32.1s
 ```
 
 The 21.9% figure is **what the classifier actually does** on the bundled
-prompt corpus with default anchors and a 0.75 stage-1 threshold — not a
+prompt corpus with default anchors and a 0.75 stage-1 threshold. Not a
 theoretical maximum. The classifier is intentionally conservative:
 borderline prompts get routed up to the standard model, which lowers
 savings but improves the verifier-agreement rate (98.8%). Lower the
 threshold (`AUTOPILOT_STAGE1_THRESHOLD=0.65`) to push more traffic to
 the budget model and trade routing accuracy for cost.
 
-> Costs are simulated — Ollama runs locally and is free. The simulated
+> Costs are simulated. Ollama runs locally and is free. The simulated
 > pricing curve follows current cheap-vs-mid-tier API pricing, so the
 > savings percentage is a realistic estimate.
 
@@ -132,7 +132,7 @@ flowchart LR
 **Two-stage classifier.** Stage 1 is an embedding-similarity check against
 five curated anchor prompts per tier. If the top tier scores above 0.75
 cosine similarity, the routing decision is made in <5 ms with no model
-inference. Otherwise stage 2 — a DeBERTa-v3-xsmall zero-shot pipeline —
+inference. Otherwise stage 2, a DeBERTa-v3-xsmall zero-shot pipeline,
 takes over. In practice stage 1 handles ~75% of traffic.
 
 **Async verifier.** After each response is built and sent, an
@@ -144,34 +144,35 @@ response; if it crashes, the failure is logged and absorbed.
 
 **Feedback loop.** The corrections table grows as the verifier disagrees.
 The dashboard plots routing accuracy as `1 − corrections / verifiable`
-windowed over time — the "system gets smarter" story shows up as the
+windowed over time. The "system gets smarter" story shows up as the
 curve trending upward.
 
 ---
 
 ## Why not just use [llm-gateway](https://github.com/adel-saoud/llm-gateway)?
 
-Fair question — they look adjacent and both live in this portfolio. The
+Fair question. They look adjacent and both live in this portfolio. The
 honest answer is they operate on different axes:
 
 |                         | `llm-gateway` (control plane) | `llm-cost-autopilot` (decision engine) |
 |:------------------------|:------------------------------|:---------------------------------------|
-| **Layer**               | Infrastructure proxy — sits in front of all traffic | Application engine — decides per request |
+| **Layer**               | Infrastructure proxy that sits in front of all traffic | Application engine that decides per request |
 | **Question answered**   | Where did my budget go?       | Which model should handle this request? |
-| **Cost tracking**       | Retrospective — records what was spent | Prospective — prevents overspending before it happens |
+| **Cost tracking**       | Retrospective: records what was spent | Prospective: prevents overspending before it happens |
 | **HuggingFace models**  | None                          | `all-MiniLM-L6-v2` + `deberta-v3-xsmall` |
-| **Learning**            | Static routing rules          | Feedback loop — improves from routing mistakes |
+| **Learning**            | Static routing rules          | Feedback loop that improves from routing mistakes |
 | **Unique angle**        | RAG cost attribution          | Semantic complexity routing that learns over time |
 
-They're complementary. Gateway tracks **where** the budget went; autopilot
-prevents it going to the wrong place; [`llm-regression-detector`](https://github.com/adel-saoud/llm-regression-detector)
+They're complementary. [`llm-gateway`](https://github.com/adel-saoud/llm-gateway)
+tracks **where** the budget went; autopilot prevents it going to the wrong
+place; [`llm-regression-detector`](https://github.com/adel-saoud/llm-regression-detector)
 catches quality drops when prompts change.
 
 ---
 
 ## API surface
 
-OpenAI-compatible — any client that talks to `/v1/chat/completions` works.
+OpenAI-compatible. Any client that talks to `/v1/chat/completions` works.
 
 ```
 POST  /v1/chat/completions       autopilot picks the model
@@ -192,7 +193,7 @@ x-autopilot-cost-usd             0.000021
 x-autopilot-savings-usd          0.000121
 ```
 
-`GET /v1/explain/{request_id}` is the interview demo — it returns the
+`GET /v1/explain/{request_id}` is the interview demo. It returns the
 classification, the chosen model, the cost vs. baseline, and (if the
 verifier disagreed) the standard-model response and similarity score.
 
@@ -202,13 +203,13 @@ verifier disagreed) the standard-model response and similarity score.
 
 ```
 src/llm_cost_autopilot/
-├── api/             FastAPI app — OpenAI-compatible /v1 surface + admin
+├── api/             FastAPI app, OpenAI-compatible /v1 surface + admin
 ├── classifier/      Two-stage zero-shot complexity classifier (+ HF backends)
 ├── router/          ModelConfig · ModelRegistry · Ollama HTTP adapter
 ├── verifier/        Async quality verifier + similarity scorer
-├── storage/         SQLite ledger — routing log + correction dataset
+├── storage/         SQLite ledger: routing log + correction dataset
 ├── cost/            Pure savings math + per-request CostTracker
-├── dashboard/       Streamlit UI — 4 panels (excluded from pyright)
+├── dashboard/       Streamlit UI, 4 panels (excluded from pyright)
 ├── config.py        AUTOPILOT_* env vars via pydantic-settings
 └── main.py          uvicorn entry point
 
@@ -238,12 +239,12 @@ ADRs → [`context/decisions/`](context/decisions/)
 | | `structlog` | Structured logging with `bind()` context |
 | **ML (optional `[ml]` extra)** | `sentence-transformers` | Stage 1 embedding similarity (`all-MiniLM-L6-v2`) |
 | | `transformers` | Stage 2 zero-shot pipeline (DeBERTa-v3-xsmall) |
-| | `torch` | Backend for both HF models — CPU-only OK |
+| | `torch` | Backend for both HF models (CPU-only OK) |
 | **Dashboard (optional `[dashboard]`)** | `streamlit` + `plotly` + `pandas` | 4-panel observability UI |
 | **Dev** | `uv` | Fast package manager + lockfile |
 | | `ruff` | Lint + format |
 | | `pyright` strict | 0 errors, 0 warnings |
-| | `pytest` + `pytest-asyncio` | Hermetic — no model downloads, no daemon |
+| | `pytest` + `pytest-asyncio` | Hermetic: no model downloads, no daemon |
 | | `pre-commit` | Lint + format on every commit |
 
 ---
@@ -256,7 +257,7 @@ uv run pre-commit install
 
 uv run ruff check --fix .    # lint + autofix
 uv run ruff format .         # format
-uv run pyright               # type-check — must stay at 0 errors
+uv run pyright               # type-check (must stay at 0 errors)
 uv run pytest                # 81 tests, 95% coverage, gate at 85%
 ```
 
@@ -273,7 +274,7 @@ Defaults are sensible; touch only what you need.
 | Variable | Default | Effect |
 |:--|:--|:--|
 | `AUTOPILOT_STAGE1_THRESHOLD` | `0.75` | Cosine confidence below which stage 2 fires. Lowering it makes stage 2 a hot path. |
-| `AUTOPILOT_VERIFIER_ENABLED` | `true` | Master switch — false means no async verifier work at all. |
+| `AUTOPILOT_VERIFIER_ENABLED` | `true` | Master switch; false means no async verifier work at all. |
 | `AUTOPILOT_VERIFIER_DIVERGENCE_THRESHOLD` | `0.70` | Similarity below this is recorded as a routing failure. |
 | `AUTOPILOT_OLLAMA_BASE_URL` | `http://localhost:11434` | Local Ollama daemon URL. |
 | `AUTOPILOT_BUDGET_MODEL` | `qwen2.5:0.5b` | Ollama id for the SIMPLE tier. |
@@ -307,8 +308,8 @@ Defaults are sensible; touch only what you need.
 ## Companion projects
 
 - [`llm-regression-detector`](https://github.com/adel-saoud/llm-regression-detector)
-  — catches LLM quality regressions in CI before they reach users.
-- [`llm-gateway`](https://github.com/adel-saoud/llm-gateway) —
+  catches LLM quality regressions in CI before they reach users.
+- [`llm-gateway`](https://github.com/adel-saoud/llm-gateway) is the
   infrastructure proxy with RAG cost attribution.
 
 Three projects, two axes: **gateway** tracks where budget went, **autopilot**
@@ -319,4 +320,4 @@ when prompts change.
 
 ## License
 
-[MIT](LICENSE) — use it, fork it, ship it.
+[MIT](LICENSE). Use it, fork it, ship it.
