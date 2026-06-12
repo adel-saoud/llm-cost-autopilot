@@ -309,8 +309,8 @@ Defaults are sensible; touch only what you need.
 
 - [`llm-regression-detector`](https://github.com/adel-saoud/llm-regression-detector)
   catches LLM quality regressions in CI before they reach users.
-- [`llm-gateway`](https://github.com/adel-saoud/llm-gateway) is the
-  infrastructure proxy with RAG cost attribution.
+- [`llm-gateway`](https://github.com/adel-saoud/llm-gateway)
+  proxies LLM traffic with RAG-level cost attribution.
 
 Three projects, two axes: **gateway** tracks where budget went, **autopilot**
 prevents it going to the wrong place, **detector** catches quality drops
