@@ -216,3 +216,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Load-test ledgers (real per-run data, not portable)
+data/
+
+# JetBrains
+.idea/

@@ -26,7 +26,7 @@ correction dataset. The system improves itself.
 > Decathlon France, where 25K users meant every architecture decision
 > had a direct cost impact. This is the routing layer I wished we had.
 
-![Dashboard: 202 routed requests, $0.1108 saved (21.4%), 98.8% routing accuracy, 1 correction logged; cumulative-savings area chart and tier-distribution donut both visible. Data is from the live 200-request load test against real Ollama (qwen2.5:0.5b + llama3.2:3b)](docs/dashboard.png)
+![Dashboard composite: all 4 panels from a live 1000-request load test against real Ollama (qwen2.5:0.5b + llama3.2:3b). Top-left cost savings: $0.3882 saved (14.6% reduction) across 1,000 requests, cumulative-savings curve trending steadily upward, tier mix 71.6% moderate / 22.3% simple / 6.1% complex. Top-right routing accuracy: 94.6% overall, trend chart showing accuracy started at 91.7% and climbed to 100% (+8.3pp) as the verifier accumulated 12 corrections. Bottom-left corrections explorer: 12 flagged routing failures with similarity scores (Mona Lisa, capital of France, Hamlet etc.). Bottom-right model comparison: 'Who painted the Mona Lisa?' cheap response was 'Sorry, but I can't assist with that.', standard response correctly named Leonardo da Vinci.](docs/dashboard.png)
 
 ---
 
@@ -65,29 +65,34 @@ x-autopilot-cost-usd:            0.000021
 x-autopilot-savings-usd:         0.000121
 ```
 
-Generate a meaningful headline metric with a few hundred mixed requests:
+Generate a headline metric with a 1,000-request mixed run:
 
 ```bash
-uv run python scripts/load_test.py --requests 200 --concurrency 8
+uv run python scripts/load_test.py --requests 1000 --concurrency 12
 ```
 
-Measured on a 200-request run against `qwen2.5:0.5b` + `llama3.2:3b` on
-a local M-series Mac:
+Measured on a 1,000-request run against `qwen2.5:0.5b` + `llama3.2:3b` on
+a local M-series Mac, prompt pool of 30 unique prompts per tier across
+factual lookups, code, business, math, customer support and planning:
 
 ```
-Saved                         $0.1106  (21.9% reduction)
-Expected-tier match           68.0%
-Routing accuracy (verifier)   98.8%
-Latency p50 / p95             10.3s / 32.1s
+Saved                         $0.3882  (14.6% reduction)
+Routing accuracy (verifier)   94.6%
+Corrections logged            12
+Latency p50 / p95             24.3s / 43.1s
+Tier mix                      22% simple · 72% moderate · 6% complex
 ```
 
-The 21.9% figure is **what the classifier actually does** on the bundled
-prompt corpus with default anchors and a 0.75 stage-1 threshold. Not a
-theoretical maximum. The classifier is intentionally conservative:
-borderline prompts get routed up to the standard model, which lowers
-savings but improves the verifier-agreement rate (98.8%). Lower the
-threshold (`AUTOPILOT_STAGE1_THRESHOLD=0.65`) to push more traffic to
-the budget model and trade routing accuracy for cost.
+The 14.6% figure is **what the classifier actually does** on the bundled
+prompt corpus with a 0.65 stage-1 threshold, not a theoretical maximum.
+At this threshold the classifier defaults borderline prompts to the
+standard model, which trims savings but produces a visible learning
+signal: 12 corrections out of 1,000 requests, with the routing-accuracy
+window climbing from 91.7% to 100% (see panel 2 in the screenshot).
+
+Raise the threshold (`AUTOPILOT_STAGE1_THRESHOLD=0.85`) to push more
+traffic to the budget model and trade routing accuracy for cost. Drop
+it to 0.55 to be more conservative still.
 
 > Costs are simulated. Ollama runs locally and is free. The simulated
 > pricing curve follows current cheap-vs-mid-tier API pricing, so the
@@ -287,10 +292,12 @@ Defaults are sensible; touch only what you need.
 
 - **Stage 2 adds ~50 ms** of NLI inference for the ~25% of prompts stage 1
   is unsure about. Documented in [ADR-001](context/decisions/001-two-stage-classifier.md).
-- **Real savings depend on prompt mix.** Measured 21.9% reduction on the
-  bundled load test; a workload dominated by short factual lookups would
-  push that higher, while a workload of long-form analyses would push it
-  lower. The verifier-agreement rate (98.8%) is more stable across mixes.
+- **Real savings depend on prompt mix.** Measured 14.6% reduction on the
+  bundled 1,000-request load test (50/35/15 mix). A workload dominated by
+  short factual lookups would push that higher; a workload of long-form
+  analyses would push it lower. The verifier-agreement rate (94.6%) and
+  the trend curve (91.7% → 100% over 12 corrections) are more stable
+  across mixes.
 - **Verifier uses semantic similarity, not LLM-as-Judge.** Faster but
   noisier; some "diverged" rows are stylistic differences rather than
   factual ones. Roadmap notes a judge-backed scorer.
