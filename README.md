@@ -23,7 +23,7 @@ then verifies the decision was correct. Routing failures feed a growing
 correction dataset. The system improves itself.
 
 > Inspired by the cost visibility gap I experienced running DaiLY at
-> Decathlon France, where 25K users meant every architecture decision
+> Decathlon France, where 30,000+ users meant every architecture decision
 > had a direct cost impact. This is the routing layer I wished we had.
 
 ![Dashboard composite: all 4 panels from a live 1000-request load test against real Ollama (qwen2.5:0.5b + llama3.2:3b). Top-left cost savings: $0.3882 saved (14.6% reduction) across 1,000 requests, cumulative-savings curve trending steadily upward, tier mix 71.6% moderate / 22.3% simple / 6.1% complex. Top-right routing accuracy: 94.6% overall, trend chart showing accuracy started at 91.7% and climbed to 100% (+8.3pp) as the verifier accumulated 12 corrections. Bottom-left corrections explorer: 12 flagged routing failures with similarity scores (Mona Lisa, capital of France, Hamlet etc.). Bottom-right model comparison: 'Who painted the Mona Lisa?' cheap response was 'Sorry, but I can't assist with that.', standard response correctly named Leonardo da Vinci.](docs/dashboard.png)
