@@ -1,7 +1,7 @@
 # LLM Cost Autopilot
 
 > Zero-shot complexity classifier that routes LLM requests to the cheapest
-> capable model, and gets smarter the more it's used.
+> capable model, and records every routing mistake for threshold tuning and retraining.
 
 [![CI](https://github.com/adel-saoud/llm-cost-autopilot/actions/workflows/ci.yml/badge.svg)](https://github.com/adel-saoud/llm-cost-autopilot/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
@@ -20,11 +20,11 @@ analysis if you route everything to the same model.
 complexity using a zero-shot HuggingFace pipeline (no training data, no
 labelled dataset), routes it to the cheapest tier capable of handling it,
 then verifies the decision was correct. Routing failures feed a growing
-correction dataset. The system improves itself.
+correction dataset for threshold tuning and retraining.
 
-> Inspired by the cost visibility gap I experienced running DaiLY at
-> Decathlon France, where 30,000+ users meant every architecture decision
-> had a direct cost impact. This is the routing layer I wished we had.
+> **Why I built this.** At production scale, every request sent to a larger
+> model than it needed is a line on the invoice. This is the routing layer I
+> wanted in production.
 
 ![Dashboard composite: all 4 panels from a live 1000-request load test against real Ollama (qwen2.5:0.5b + llama3.2:3b). Top-left cost savings: $0.3882 saved (14.6% reduction) across 1,000 requests, cumulative-savings curve trending steadily upward, tier mix 71.6% moderate / 22.3% simple / 6.1% complex. Top-right routing accuracy: 94.6% overall, trend chart showing accuracy started at 91.7% and climbed to 100% (+8.3pp) as the verifier accumulated 12 corrections. Bottom-left corrections explorer: 12 flagged routing failures with similarity scores (Mona Lisa, capital of France, Hamlet etc.). Bottom-right model comparison: 'Who painted the Mona Lisa?' cheap response was 'Sorry, but I can't assist with that.', standard response correctly named Leonardo da Vinci.](docs/dashboard.png)
 
@@ -86,7 +86,7 @@ Tier mix                      22% simple · 72% moderate · 6% complex
 The 14.6% figure is **what the classifier actually does** on the bundled
 prompt corpus with a 0.65 stage-1 threshold, not a theoretical maximum.
 At this threshold the classifier defaults borderline prompts to the
-standard model, which trims savings but produces a visible learning
+standard model, which trims savings but produces a visible correction
 signal: 12 corrections out of 1,000 requests, with the routing-accuracy
 window climbing from 91.7% to 100% (see panel 2 in the screenshot).
 
@@ -149,8 +149,8 @@ response; if it crashes, the failure is logged and absorbed.
 
 **Feedback loop.** The corrections table grows as the verifier disagrees.
 The dashboard plots routing accuracy as `1 − corrections / verifiable`
-windowed over time. The "system gets smarter" story shows up as the
-curve trending upward.
+windowed over time. Corrections are not yet fed back into routing;
+they are the dataset for tuning the stage-1 threshold and anchors.
 
 ---
 
@@ -165,8 +165,8 @@ honest answer is they operate on different axes:
 | **Question answered**   | Where did my budget go?       | Which model should handle this request? |
 | **Cost tracking**       | Retrospective: records what was spent | Prospective: prevents overspending before it happens |
 | **HuggingFace models**  | None                          | `all-MiniLM-L6-v2` + `deberta-v3-xsmall` |
-| **Learning**            | Static routing rules          | Feedback loop that improves from routing mistakes |
-| **Unique angle**        | RAG cost attribution          | Semantic complexity routing that learns over time |
+| **Learning**            | Static routing rules          | Correction dataset built from verifier disagreements |
+| **Unique angle**        | RAG cost attribution          | Semantic complexity routing with async verification |
 
 They're complementary. [`llm-gateway`](https://github.com/adel-saoud/llm-gateway)
 tracks **where** the budget went; autopilot prevents it going to the wrong
@@ -304,8 +304,9 @@ Defaults are sensible; touch only what you need.
 - **Costs are simulated.** Real routing logic, synthetic prices that
   follow current cheap-vs-mid-tier API curves. Plug in real pricing by
   overriding `AUTOPILOT_*_COST_PER_1K_*` env vars.
-- **Feedback loop improves routing, not the models themselves.** Anchor
-  prompts and threshold get smarter; the underlying LLMs don't change.
+- **Corrections are recorded, not yet applied.** The router does not read
+  the correction dataset at request time; tuning the threshold or anchors
+  from it is a manual step today.
 - **Verifier concurrency is unbounded.** Under sustained load, verifier
   tasks compete with foreground traffic on the same Ollama process.
   Roadmap notes a per-process semaphore.

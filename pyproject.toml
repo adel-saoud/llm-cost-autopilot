@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "llm-cost-autopilot"
 version = "0.1.0"
-description = "Two-stage zero-shot complexity classifier that routes LLM requests to the cheapest capable model — and gets smarter the more it's used."
+description = "Two-stage zero-shot complexity classifier that routes LLM requests to the cheapest capable model and records every routing mistake for threshold tuning."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
