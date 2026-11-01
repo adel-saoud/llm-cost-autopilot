@@ -1,20 +1,20 @@
 {
-  "generated_at": "2026-10-24T21:12:06+00:00",
+  "generated_at": "2026-11-01T21:16:05+00:00",
   "command": "uv run --extra ml python scripts/reproduce.py",
   "git_commit": "uncommitted",
   "python": "3.14.4",
   "packages": {
     "llm-cost-autopilot": "0.1.0",
-    "numpy": "2.4.6",
-    "pydantic": "2.13.4",
-    "sentence-transformers": "5.5.1",
-    "torch": "2.12.0",
-    "transformers": "5.10.2"
+    "numpy": "2.5.4",
+    "pydantic": "2.14.2",
+    "sentence-transformers": "6.2.0",
+    "torch": "2.15.0",
+    "transformers": "5.22.0"
   },
   "hardware": {
     "cpu": "Apple M4 Pro",
     "memory_gb": 24.0,
-    "os": "macOS-27.0.1-arm64-arm-64bit-Mach-O"
+    "os": "macOS-27.2-arm64-arm-64bit-Mach-O"
   },
   "ollama": {
     "server_version": "0.40.10",
@@ -68,7 +68,7 @@
   "reproducibility_note": "Answers were generated with this many concurrent Ollama calls, and concurrent inference is not bit-identical to one-at-a-time inference even at temperature 0. The response cache under data/eval/ollama_cache on the machine that produced these numbers is the reproducibility source; a fresh clone regenerates it.",
   "metrics": {
     "run_a_cost_reduction": {
-      "value": 0.0128,
+      "value": 0.0132,
       "n": 1000,
       "unit": "fraction",
       "description": "Cost saved vs sending every request to the moderate-tier model"
@@ -86,7 +86,7 @@
       "description": "Gold accuracy on questions never seen in warm-up"
     },
     "run_a_cheap_share_qa": {
-      "value": 0.024,
+      "value": 0.026,
       "n": 500,
       "unit": "fraction",
       "description": "QA prompts routed to the simple tier"
@@ -104,8 +104,8 @@
       "description": "Requests decided by stage 1 (anchors)"
     },
     "run_a_verifier_agreement": {
-      "value": 0.9762,
-      "n": 42,
+      "value": 0.9767,
+      "n": 43,
       "unit": "fraction",
       "description": "Cheap answers the verifier accepted, over requests served by the simple tier"
     },
@@ -116,7 +116,7 @@
       "description": "Corrections recorded over warm-up and measured traffic"
     },
     "run_b_cost_reduction": {
-      "value": 0.0128,
+      "value": 0.0132,
       "n": 1000,
       "unit": "fraction",
       "description": "Cost saved vs sending every request to the moderate-tier model"
@@ -134,7 +134,7 @@
       "description": "Gold accuracy on questions never seen in warm-up"
     },
     "run_b_cheap_share_qa": {
-      "value": 0.024,
+      "value": 0.026,
       "n": 500,
       "unit": "fraction",
       "description": "QA prompts routed to the simple tier"
@@ -152,8 +152,8 @@
       "description": "Requests decided by stage 1 (anchors)"
     },
     "run_b_verifier_agreement": {
-      "value": 0.9762,
-      "n": 42,
+      "value": 0.9767,
+      "n": 43,
       "unit": "fraction",
       "description": "Cheap answers the verifier accepted, over requests served by the simple tier"
     },
@@ -224,8 +224,8 @@
       "description": "Run A corrections where the cheap answer was wrong against gold"
     },
     "verifier_recall": {
-      "value": 0.0526,
-      "n": 19,
+      "value": 0.05,
+      "n": 20,
       "unit": "fraction",
       "description": "Wrong cheap QA answers the verifier flagged, run A warm-up and measured"
     },
@@ -248,7 +248,7 @@
       "description": "Median classifier latency when stage 1 decides, run A"
     },
     "stage_2_median_latency_ms": {
-      "value": 41.9983,
+      "value": 27.8321,
       "n": 1000,
       "unit": "ms",
       "description": "Median classifier latency when stage 2 decides, run A"

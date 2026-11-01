@@ -44,8 +44,8 @@ retest it with a different verifier stays useful
   recall 29%, accuracy on reworded questions unchanged between runs
   (CHANGELOG).
 - Current run, `qwen3.5:0.8b` and `qwen3.5:4b`: 1 correction
-  (`run_a_corrections`), verifier precision 100% (n=1) and recall 5.3%
-  (n=19), 0 escalations in run B (`run_b_escalations`, n=1000), and a
+  (`run_a_corrections`), verifier precision 100% (n=1) and recall 5.0%
+  (n=20), 0 escalations in run B (`run_b_escalations`, n=1000), and a
   paraphrase gain of +0.0 points, CI [+0.0, +0.0] over 125 intents
   (`paraphrase_gain_points`), all in `results/manifest.json`. Verdict: claim
   not supported ([docs/eval-feedback-loop.md](../eval-feedback-loop.md)).

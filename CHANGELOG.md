@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Docs
+- Numbers re-measured after the torch 2.15, transformers 5.22 and
+  sentence-transformers 6.2 update (`scripts/reproduce.py`). Cost reduction
+  stays 1.3%. QA prompts sent to the cheap model go from 2.4% to 2.6% (13 of
+  500), verifier recall from 5.3% (n=19) to 5.0% (n=20), and the stage 2
+  median latency is 28 ms (the docs said 43 ms, the manifest 42 ms).
+
 ## [0.2.0] - 2026-11-01
 
 ### Added

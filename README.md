@@ -78,7 +78,7 @@ flowchart LR
    simple, 10 moderate). Above
    0.75 cosine similarity it decides with no model inference.
 2. **Stage 2** runs a DeBERTa-v3-xsmall zero-shot pipeline when stage 1 is
-   unsure (median 43 ms in the evaluation, on a machine shared with other work).
+   unsure (median 28 ms in the evaluation, on a machine shared with other work).
 3. **The verifier** replays each cheap answer on the standard model in the
    background, bounded by a semaphore and a pending cap, and records a
    correction when the two answers diverge. It never delays the response.
@@ -106,7 +106,7 @@ seed).
 | Cost reduction vs sending everything to `qwen3.5:4b` | 1.3% | 1.3% |
 | Gold accuracy, reworded versions of past questions (n=250) | 36.4% | 36.4% |
 | Gold accuracy, questions never seen before (n=250) | 32.4% | 32.4% |
-| QA prompts sent to the cheap model (n=500) | 2.4% | 2.4% |
+| QA prompts sent to the cheap model (n=500) | 2.6% | 2.6% |
 | QA prompts escalated by a past correction | 0% | 0% |
 
 The same 500 questions asked of each model directly, whatever the router
@@ -126,14 +126,14 @@ loaded on Ollama ([results/tier_latency.json](results/tier_latency.json)):
 | `qwen3.5:4b` (moderate tier) | 3,437 ms | 5,828 ms | 65 |
 
 - **On factual questions the cheap model is half as accurate.** That makes
-  the router's caution correct here: it sends 12 of 500 questions to the cheap
+  the router's caution correct here: it sends 13 of 500 questions to the cheap
   model and saves 1.3%.
 - **The classifier sees almost every question as moderate.** Stage 1 decided
   no request, so the stage 2 zero-shot model routes everything, and it labels
   nearly all factual questions "reasoning, writing or analysis".
 - **The correction memory never fired.** With so few cheap answers, the
-  verifier recorded one correction (precision 100%, n=1) and caught 5.3% of
-  the cheap model's wrong answers (n=19), so run B equals run A and the
+  verifier recorded one correction (precision 100%, n=1) and caught 5.0% of
+  the cheap model's wrong answers (n=20), so run B equals run A and the
   pre-registered bar was not met.
 - **Savings are capped by the price gap.** The two models' list prices differ
   by 3x, so at equal token counts a request routed to the cheap model saves
@@ -175,7 +175,7 @@ All decisions: [docs/adr/README.md](docs/adr/README.md).
   (see Results). It stays in the code and is switched off with
   `AUTOPILOT_CORRECTION_FEEDBACK_ENABLED=false`.
 - **Stage 2 runs on nearly every real request.** Stage 1's anchors rarely
-  reach 0.75 on real questions, so most requests pay about 43 ms of NLI
+  reach 0.75 on real questions, so most requests pay about 28 ms of NLI
   inference ([ADR 0001](docs/adr/0001-two-stage-classifier.md)).
 - **Savings depend on the prompt mix and the price gap.** 1.3% on the mix
   above at a 3x price gap. A wider gap or more short lookups would save more.
