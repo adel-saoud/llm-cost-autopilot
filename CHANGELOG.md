@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-01
+
 ### Added
 - Correction memory: each verifier correction is embedded and kept per
   tenant; a later prompt that is close enough to a past misroute, and closer
@@ -146,5 +148,6 @@ All notable changes to this project are documented here. The format follows
 - OpenAI-compatible `/v1/chat/completions`, `/v1/stats`, `/v1/corrections`,
   `/v1/explain/{request_id}`, Streamlit dashboard and 1,000-request load test.
 
-[Unreleased]: https://github.com/adel-saoud/llm-cost-autopilot/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/adel-saoud/llm-cost-autopilot/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/adel-saoud/llm-cost-autopilot/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/adel-saoud/llm-cost-autopilot/releases/tag/v0.1.0
