@@ -109,7 +109,7 @@ All notable changes to this project are documented here. The format follows
 ### Docs
 - `docs/DECISIONS.md` is replaced by Architecture Decision Records in MADR 4
   format: the four existing ADRs keep their text and gain dated updates, five
-  new ones are `proposed`, and `docs/adr/README.md` indexes them.
+  new ones are added, all accepted, and `docs/adr/README.md` indexes them.
 
 ### Removed
 - The `autopilot` console script: it pointed at a `llm_cost_autopilot.cli`
