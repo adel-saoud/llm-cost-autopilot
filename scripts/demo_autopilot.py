@@ -1,7 +1,7 @@
-"""Live routing demo — sends a handful of prompts to a running autopilot.
+"""Live routing demo: sends a handful of prompts to a running autopilot.
 
 Run with:
-    docker-compose up -d                              # autopilot + ollama
+    docker compose up -d                              # autopilot + ollama
     uv run python scripts/demo_autopilot.py
 """
 
@@ -30,7 +30,7 @@ DEMO_PROMPTS: list[tuple[str, str]] = [
         "'My account was charged twice for the same subscription.'",
     ),
     (
-        "complex",
+        "moderate",
         "Analyse the tradeoffs between event-driven and request/response "
         "architectures for a multi-tenant SaaS billing pipeline, and recommend "
         "an approach with justification.",
@@ -39,15 +39,21 @@ DEMO_PROMPTS: list[tuple[str, str]] = [
 
 
 async def send_one(client: httpx.AsyncClient, prompt: str) -> dict[str, str]:
+    """Send one prompt and return its ``x-autopilot-*`` decision headers."""
     response = await client.post(
         "/v1/chat/completions",
         json={"messages": [{"role": "user", "content": prompt}]},
     )
     response.raise_for_status()
-    return {k: v for k, v in response.headers.items() if k.lower().startswith("x-autopilot-")}
+    return {
+        name: value
+        for name, value in response.headers.items()
+        if name.lower().startswith("x-autopilot-")
+    }
 
 
 async def main(base_url: str) -> None:
+    """Send every demo prompt in turn and print the routing decisions as a table."""
     console = Console()
     console.print(f"[bold]Sending {len(DEMO_PROMPTS)} prompts to {base_url}[/bold]\n")
 
@@ -63,20 +69,20 @@ async def main(base_url: str) -> None:
     async with httpx.AsyncClient(base_url=base_url, timeout=httpx.Timeout(120.0)) as client:
         for expected, prompt in DEMO_PROMPTS:
             try:
-                hdrs = await send_one(client, prompt)
+                decision_headers = await send_one(client, prompt)
             except httpx.HTTPError as exc:
                 console.print(f"[red]Request failed: {exc}[/red]")
                 continue
-            tier = hdrs.get("x-autopilot-complexity-tier", "?")
-            tier_colours = {"simple": "green", "moderate": "yellow", "complex": "magenta"}
+            tier = decision_headers.get("x-autopilot-complexity-tier", "?")
+            tier_colours = {"simple": "green", "moderate": "yellow"}
             tier_colour = tier_colours.get(tier, "white")
             table.add_row(
                 expected,
                 f"[{tier_colour}]{tier}[/{tier_colour}]",
-                hdrs.get("x-autopilot-confidence", "?"),
-                hdrs.get("x-autopilot-model-used", "?"),
-                hdrs.get("x-autopilot-cost-usd", "?"),
-                hdrs.get("x-autopilot-savings-usd", "?"),
+                decision_headers.get("x-autopilot-confidence", "?"),
+                decision_headers.get("x-autopilot-model-used", "?"),
+                decision_headers.get("x-autopilot-cost-usd", "?"),
+                decision_headers.get("x-autopilot-savings-usd", "?"),
                 prompt[:60] + ("…" if len(prompt) > 60 else ""),
             )
 
