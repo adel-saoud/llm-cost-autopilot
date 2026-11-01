@@ -1,9 +1,9 @@
-# Local stack — autopilot + ollama. Both fully local; no API keys required.
+# Local stack: autopilot + ollama. Both fully local; no API keys required.
 #
 # Usage:
 #   docker compose up -d
-#   docker compose exec ollama ollama pull qwen2.5:0.5b
-#   docker compose exec ollama ollama pull llama3.2:3b
+#   docker compose exec ollama ollama pull qwen3.5:0.8b
+#   docker compose exec ollama ollama pull qwen3.5:4b
 #   curl http://localhost:8000/health
 services:
   ollama:

@@ -1,6 +1,6 @@
 """Tests for the async quality verifier and the feedback loop.
 
-The OllamaClient, scorer, and correction store are all fakes — no daemon,
+The OllamaClient, scorer, and correction store are all fakes: no daemon,
 no model downloads.
 """
 
@@ -32,8 +32,8 @@ class FakeScorer:
         self._raises = raises
         self.calls: list[tuple[str, str]] = []
 
-    async def score(self, a: str, b: str) -> float:
-        self.calls.append((a, b))
+    async def score(self, first_text: str, second_text: str) -> float:
+        self.calls.append((first_text, second_text))
         if self._raises is not None:
             raise self._raises
         return self._score
@@ -50,17 +50,17 @@ class FakeStore:
         self.failures.append(failure)
 
 
-def _standard_cfg(model: str = "llama3.2:3b") -> ModelConfig:
+def _standard_cfg(model: str = "qwen3.5:4b") -> ModelConfig:
     return ModelConfig(
         tier=ComplexityTier.MODERATE,
         ollama_model=model,
-        cost_per_1k_input=0.003,
-        cost_per_1k_output=0.015,
+        usd_per_1m_input_tokens=3.0,
+        usd_per_1m_output_tokens=15.0,
         max_output_tokens=512,
     )
 
 
-def _cheap_response(content: str = "Paris.", model: str = "qwen2.5:0.5b") -> OllamaChatResponse:
+def _cheap_response(content: str = "Paris.", model: str = "qwen3.5:0.8b") -> OllamaChatResponse:
     return OllamaChatResponse(
         model=model,
         content=content,
@@ -74,13 +74,13 @@ def _cheap_response(content: str = "Paris.", model: str = "qwen2.5:0.5b") -> Oll
 def _ollama_client(handler: Callable[[httpx.Request], httpx.Response]) -> OllamaClient:
     return OllamaClient(
         httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url="http://x.test"),
-        max_retries=1,
+        max_attempts=1,
     )
 
 
 def _ollama_returns(
     content: str = "The capital of France is Paris.",
-    model: str = "llama3.2:3b",
+    model: str = "qwen3.5:4b",
 ) -> Callable[[httpx.Request], httpx.Response]:
     def handler(_: httpx.Request) -> httpx.Response:
         return httpx.Response(
@@ -138,12 +138,12 @@ class TestVerifyInBackground:
         store = FakeStore()
         verifier = Verifier(
             ollama=_ollama_client(_ollama_returns()),
-            standard_model=_standard_cfg("llama3.2:3b"),
+            standard_model=_standard_cfg("qwen3.5:4b"),
             scorer=scorer,
             store=store,
             divergence_threshold=0.7,
         )
-        outcome = await _run_verifier(verifier, _cheap_response(model="llama3.2:3b"))
+        outcome = await _run_verifier(verifier, _cheap_response(model="qwen3.5:4b"))
         assert outcome is VerificationOutcome.SKIPPED_STANDARD_TIER
         assert scorer.calls == []
         assert store.failures == []
@@ -242,6 +242,7 @@ async def _run_verifier(verifier: Verifier, cheap: OllamaChatResponse) -> Verifi
     """Drive ``verify_in_background`` to completion for assertions."""
     task = verifier.verify_in_background(
         request_id="req-1",
+        tenant_id="tenant-a",
         prompt="What is the capital of France?",
         cheap_response=cheap,
         cheap_tier=ComplexityTier.SIMPLE,
@@ -285,3 +286,71 @@ class TestRoutingFailure:
         )
         now = datetime.now(UTC)
         assert abs((now - failure.created_at).total_seconds()) < 5
+
+
+# ── Load limits and reproducibility ─────────────────────────────────────────
+class TestVerifierLimits:
+    def test_rejects_bad_limits(self) -> None:
+        with pytest.raises(ValueError, match="max_concurrency"):
+            Verifier(
+                ollama=_ollama_client(_ollama_returns()),
+                standard_model=_standard_cfg(),
+                scorer=FakeScorer(0.9),
+                store=FakeStore(),
+                divergence_threshold=0.7,
+                max_concurrency=0,
+            )
+
+    async def test_skips_when_too_many_are_pending(self) -> None:
+        verifier = Verifier(
+            ollama=_ollama_client(_ollama_returns()),
+            standard_model=_standard_cfg(),
+            scorer=FakeScorer(0.9),
+            store=FakeStore(),
+            divergence_threshold=0.7,
+            max_pending=1,
+        )
+        first = verifier.verify_in_background(
+            request_id="req-1",
+            tenant_id="t",
+            prompt="p",
+            cheap_response=_cheap_response(),
+            cheap_tier=ComplexityTier.SIMPLE,
+            classifier_confidence=0.9,
+        )
+        second = verifier.verify_in_background(
+            request_id="req-2",
+            tenant_id="t",
+            prompt="p",
+            cheap_response=_cheap_response(),
+            cheap_tier=ComplexityTier.SIMPLE,
+            classifier_confidence=0.9,
+        )
+        assert verifier.pending_count == 2
+        assert await second is VerificationOutcome.SKIPPED_OVERLOADED
+        assert await first is VerificationOutcome.AGREED
+        assert verifier.pending_count == 0
+
+    async def test_pins_sampling_and_records_tenant(self) -> None:
+        captured: dict[str, object] = {}
+        respond = _ollama_returns()
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            import json
+
+            captured.update(json.loads(request.content))
+            return respond(request)
+
+        store = FakeStore()
+        verifier = Verifier(
+            ollama=_ollama_client(handler),
+            standard_model=_standard_cfg(),
+            scorer=FakeScorer(0.1),
+            store=store,
+            divergence_threshold=0.7,
+            temperature=0.0,
+            seed=7,
+        )
+        assert await _run_verifier(verifier, _cheap_response()) is VerificationOutcome.DIVERGED
+        assert captured["options"] == {"num_predict": 512, "temperature": 0.0, "seed": 7}
+        assert store.failures[0].tenant_id == "tenant-a"

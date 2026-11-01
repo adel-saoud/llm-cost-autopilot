@@ -6,7 +6,7 @@ import pytest
 from pydantic import ValidationError
 
 from llm_cost_autopilot.classifier import (
-    ANCHORS,
+    ANCHOR_PROMPTS,
     ClassificationResult,
     ClassifierStage,
     ComplexityTier,
@@ -23,11 +23,10 @@ class TestComplexityTier:
     def test_tiers_are_string_enum(self) -> None:
         assert ComplexityTier.SIMPLE == "simple"
         assert ComplexityTier.MODERATE == "moderate"
-        assert ComplexityTier.COMPLEX == "complex"
 
     def test_anchors_cover_every_tier(self) -> None:
-        assert set(ANCHORS.keys()) == set(ComplexityTier)
-        for tier, prompts in ANCHORS.items():
+        assert set(ANCHOR_PROMPTS.keys()) == set(ComplexityTier)
+        for tier, prompts in ANCHOR_PROMPTS.items():
             assert len(prompts) >= 3, f"{tier} needs at least 3 anchors for stability"
 
     def test_hypothesis_labels_cover_every_tier(self) -> None:
@@ -60,7 +59,6 @@ class TestArgmaxTier:
         scores = {
             ComplexityTier.SIMPLE: 0.2,
             ComplexityTier.MODERATE: 0.8,
-            ComplexityTier.COMPLEX: 0.1,
         }
         tier, score = argmax_tier(scores)
         assert tier is ComplexityTier.MODERATE
@@ -70,7 +68,6 @@ class TestArgmaxTier:
         scores = {
             ComplexityTier.SIMPLE: 0.5,
             ComplexityTier.MODERATE: 0.5,
-            ComplexityTier.COMPLEX: 0.5,
         }
         tier, _ = argmax_tier(scores)
         assert tier is ComplexityTier.SIMPLE
@@ -96,8 +93,7 @@ class TestTwoStageClassifier:
             stage1={
                 "Capital of France?": {
                     ComplexityTier.SIMPLE: 0.92,
-                    ComplexityTier.MODERATE: 0.30,
-                    ComplexityTier.COMPLEX: 0.10,
+                    ComplexityTier.MODERATE: 0.10,
                 },
             },
             threshold=0.75,
@@ -117,15 +113,13 @@ class TestTwoStageClassifier:
             stage1={
                 prompt: {
                     ComplexityTier.SIMPLE: 0.40,
-                    ComplexityTier.MODERATE: 0.55,
-                    ComplexityTier.COMPLEX: 0.50,
+                    ComplexityTier.MODERATE: 0.50,
                 },
             },
             stage2={
                 prompt: {
-                    ComplexityTier.SIMPLE: 0.10,
+                    ComplexityTier.SIMPLE: 0.18,
                     ComplexityTier.MODERATE: 0.82,
-                    ComplexityTier.COMPLEX: 0.08,
                 },
             },
             threshold=0.75,
@@ -146,8 +140,7 @@ class TestTwoStageClassifier:
             stage1={
                 prompt: {
                     ComplexityTier.SIMPLE: 0.75,
-                    ComplexityTier.MODERATE: 0.10,
-                    ComplexityTier.COMPLEX: 0.05,
+                    ComplexityTier.MODERATE: 0.05,
                 },
             },
             threshold=0.75,
@@ -166,19 +159,18 @@ class TestTwoStageClassifier:
         assert embed.calls == []
         assert zero_shot.calls == []
 
-    def test_complex_prompt_routes_to_complex(self, make_classifier: MakeClassifier) -> None:
+    def test_reasoning_prompt_routes_to_moderate(self, make_classifier: MakeClassifier) -> None:
         prompt = "Architect a multi-region failover plan and weigh the tradeoffs."
         clf, _, _ = make_classifier(
             stage1={
                 prompt: {
                     ComplexityTier.SIMPLE: 0.10,
-                    ComplexityTier.MODERATE: 0.40,
-                    ComplexityTier.COMPLEX: 0.88,
+                    ComplexityTier.MODERATE: 0.88,
                 },
             },
         )
         result = clf.classify(prompt)
-        assert result.tier is ComplexityTier.COMPLEX
+        assert result.tier is ComplexityTier.MODERATE
         assert result.stage is ClassifierStage.STAGE_1_EMBEDDING
 
     def test_scores_dict_carries_decision_basis(self, make_classifier: MakeClassifier) -> None:
@@ -188,7 +180,6 @@ class TestTwoStageClassifier:
                 prompt: {
                     ComplexityTier.SIMPLE: 0.20,
                     ComplexityTier.MODERATE: 0.91,
-                    ComplexityTier.COMPLEX: 0.30,
                 },
             },
         )

@@ -1,11 +1,14 @@
 """Load test: fire synthetic prompts and report the cost-savings headline.
 
-Default mix:
+Default mix, by prompt pool:
     50% simple   (factual lookups, conversions, single-step tasks)
     35% moderate (summarisation, classification, extraction, light reasoning)
-    15% complex  (multi-step reasoning, planning, deep analysis)
+    15% multi-step (multi-step reasoning, planning, deep analysis)
 
-Run against a live autopilot (docker-compose up first):
+The router has two tiers, so prompts from the moderate and multi-step pools
+are both expected on the moderate tier; the multi-step pool keeps the mix heavy.
+
+Run against a live autopilot (``docker compose up -d`` first):
     uv run python scripts/load_test.py --requests 1000 --concurrency 12
 """
 
@@ -22,11 +25,10 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-# ── Prompt pools: 30 fully-formed prompts per tier ──────────────────────────
-# Deliberate variety in domain (factual, math, code, business, creative,
-# customer support, language, planning) so the classifier sees realistic
-# distribution shifts rather than the same template with filler words.
-
+# 30 prompts per pool, varied in domain (factual, math, code, business,
+# creative, support, language, planning) so the classifier does not see one
+# template padded with filler words. eval_feedback_loop.py reuses the
+# moderate and multi-step pools.
 SIMPLE_PROMPTS = [
     "What is the capital of France?",
     "What's 15 percent of 240?",
@@ -129,7 +131,7 @@ MODERATE_PROMPTS = [
     "'login is super slow today, like 5 seconds, started after the deploy'",
 ]
 
-COMPLEX_PROMPTS = [
+MULTI_STEP_PROMPTS = [
     "Analyse the tradeoffs between event-driven and request/response architectures "
     "for a multi-tenant SaaS billing pipeline. Recommend an approach with justification.",
     "Write a detailed technical proposal for migrating a monolithic Django application "
@@ -199,19 +201,23 @@ COMPLEX_PROMPTS = [
 ]
 
 
-# ── Driver ──────────────────────────────────────────────────────────────────
-def _build_prompts(n: int, rng: random.Random) -> list[tuple[str, str]]:
-    counts = {"simple": int(n * 0.50), "moderate": int(n * 0.35), "complex": 0}
-    counts["complex"] = n - counts["simple"] - counts["moderate"]
+def _build_prompts(request_count: int, rng: random.Random) -> list[tuple[str, str]]:
+    """Return ``(expected_tier, prompt)`` pairs in a 50/35/15 pool mix, shuffled by ``rng``."""
+    counts = {
+        "simple": int(request_count * 0.50),
+        "moderate": int(request_count * 0.35),
+        "multi_step": 0,
+    }
+    counts["multi_step"] = request_count - counts["simple"] - counts["moderate"]
     pools = {
-        "simple": SIMPLE_PROMPTS,
-        "moderate": MODERATE_PROMPTS,
-        "complex": COMPLEX_PROMPTS,
+        "simple": ("simple", SIMPLE_PROMPTS),
+        "moderate": ("moderate", MODERATE_PROMPTS),
+        "multi_step": ("moderate", MULTI_STEP_PROMPTS),
     }
     prompts: list[tuple[str, str]] = []
-    for tier, tier_count in counts.items():
-        pool = pools[tier]
-        prompts.extend((tier, rng.choice(pool)) for _ in range(tier_count))
+    for pool_name, pool_count in counts.items():
+        expected_tier, pool = pools[pool_name]
+        prompts.extend((expected_tier, rng.choice(pool)) for _ in range(pool_count))
     rng.shuffle(prompts)
     return prompts
 
@@ -220,54 +226,58 @@ async def _send(
     client: httpx.AsyncClient,
     expected_tier: str,
     prompt: str,
-    sem: asyncio.Semaphore,
+    semaphore: asyncio.Semaphore,
 ) -> dict[str, object]:
-    async with sem:
-        t0 = time.perf_counter()
+    """Send one prompt and return its decision headers, cost and latency, or the error."""
+    async with semaphore:
+        started_at = time.perf_counter()
         try:
-            r = await client.post(
+            response = await client.post(
                 "/v1/chat/completions",
                 json={"messages": [{"role": "user", "content": prompt}]},
             )
-            elapsed_ms = (time.perf_counter() - t0) * 1000.0
-            r.raise_for_status()
+            elapsed_ms = (time.perf_counter() - started_at) * 1000.0
+            response.raise_for_status()
         except httpx.HTTPError as exc:
             return {"ok": False, "error": str(exc), "expected": expected_tier}
 
         return {
             "ok": True,
             "expected": expected_tier,
-            "actual_tier": r.headers.get("x-autopilot-complexity-tier", "?"),
-            "model": r.headers.get("x-autopilot-model-used", "?"),
-            "cost": float(r.headers.get("x-autopilot-cost-usd", "0") or 0),
-            "saved": float(r.headers.get("x-autopilot-savings-usd", "0") or 0),
+            "actual_tier": response.headers.get("x-autopilot-complexity-tier", "?"),
+            "model": response.headers.get("x-autopilot-model-used", "?"),
+            "cost": float(response.headers.get("x-autopilot-cost-usd", "0") or 0),
+            "saved": float(response.headers.get("x-autopilot-savings-usd", "0") or 0),
             "latency_ms": elapsed_ms,
         }
 
 
-async def main(base_url: str, n: int, concurrency: int, seed: int) -> None:
+async def main(base_url: str, request_count: int, concurrency: int, seed: int) -> None:
+    """Fire the mix at ``base_url`` and print savings, tier match and latency."""
     console = Console()
     rng = random.Random(seed)
-    prompts = _build_prompts(n, rng)
-    sem = asyncio.Semaphore(concurrency)
+    prompts = _build_prompts(request_count, rng)
+    semaphore = asyncio.Semaphore(concurrency)
 
     console.print(
         Panel.fit(
             f"[bold]Load test[/bold]\n"
             f"  target       : {base_url}\n"
-            f"  requests     : {n}\n"
+            f"  requests     : {request_count}\n"
             f"  concurrency  : {concurrency}\n"
-            f"  mix          : 50% simple · 35% moderate · 15% complex\n"
+            f"  pool mix     : 50% simple · 35% moderate · 15% multi-step\n"
             f"  pool sizes   : {len(SIMPLE_PROMPTS)} simple · "
-            f"{len(MODERATE_PROMPTS)} moderate · {len(COMPLEX_PROMPTS)} complex",
+            f"{len(MODERATE_PROMPTS)} moderate · {len(MULTI_STEP_PROMPTS)} multi-step",
             border_style="cyan",
         )
     )
 
     async with httpx.AsyncClient(base_url=base_url, timeout=httpx.Timeout(120.0)) as client:
-        t0 = time.perf_counter()
-        results = await asyncio.gather(*[_send(client, tier, p, sem) for tier, p in prompts])
-        wall_seconds = time.perf_counter() - t0
+        started_at = time.perf_counter()
+        results = await asyncio.gather(
+            *[_send(client, tier, prompt, semaphore) for tier, prompt in prompts]
+        )
+        wall_seconds = time.perf_counter() - started_at
 
     oks = [r for r in results if r["ok"]]
     fails = [r for r in results if not r["ok"]]
@@ -309,7 +319,7 @@ async def main(base_url: str, n: int, concurrency: int, seed: int) -> None:
     tiers.add_column("Tier")
     tiers.add_column("Count", justify="right")
     tiers.add_column("Share", justify="right")
-    for tier in ("simple", "moderate", "complex"):
+    for tier in ("simple", "moderate"):
         count = tier_counts.get(tier, 0)
         tiers.add_row(tier, str(count), f"{count / len(oks) * 100:.1f}%")
     console.print(tiers)

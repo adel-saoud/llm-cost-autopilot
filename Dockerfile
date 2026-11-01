@@ -1,27 +1,27 @@
 # syntax=docker/dockerfile:1.7
 
 # ── Builder ────────────────────────────────────────────────────────────────
-FROM python:3.11-slim AS builder
+FROM python:3.14-slim AS builder
 
 # uv installs faster than pip and produces hermetic environments.
-COPY --from=ghcr.io/astral-sh/uv:0.5.0 /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.13.5 /uv /usr/local/bin/uv
 
 ENV UV_LINK_MODE=copy \
     UV_COMPILE_BYTECODE=1 \
-    UV_PYTHON=python3.11
+    UV_PYTHON=python3.14
 
 WORKDIR /app
 
 # Copy lockfile + project metadata first so we can cache the dependency layer.
-COPY pyproject.toml uv.lock* ./
+COPY pyproject.toml uv.lock README.md ./
 COPY src/ ./src/
 
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --extra ml --no-dev
+    uv sync --locked --extra ml --no-dev
 
 
 # ── Runtime ────────────────────────────────────────────────────────────────
-FROM python:3.11-slim AS runtime
+FROM python:3.14-slim AS runtime
 
 # Run as an unprivileged user so a compromised model can't trash the host.
 RUN useradd --create-home --uid 1000 autopilot

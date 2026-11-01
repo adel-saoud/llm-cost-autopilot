@@ -1,4 +1,4 @@
-"""Production ASGI entry point — ``uvicorn llm_cost_autopilot.main:app``."""
+"""Production ASGI entry point: ``uvicorn llm_cost_autopilot.main:app``."""
 
 from __future__ import annotations
 

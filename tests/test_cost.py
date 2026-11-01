@@ -32,7 +32,7 @@ class TestComputeSavings:
         assert s.saved_pct == 0.0
 
     def test_negative_savings_when_autopilot_is_more_expensive(self) -> None:
-        # Edge case: classifier put a small request in COMPLEX tier somehow.
+        # Edge case: classifier put a small request in the MODERATE tier somehow.
         s = compute_savings(actual_cost_usd=0.002, baseline_cost_usd=0.001)
         assert s.saved_usd == pytest.approx(-0.001)
         assert s.saved_pct == pytest.approx(-100.0)
@@ -48,18 +48,18 @@ class TestComputeSavings:
 def _budget_cfg() -> ModelConfig:
     return ModelConfig(
         tier=ComplexityTier.SIMPLE,
-        ollama_model="qwen2.5:0.5b",
-        cost_per_1k_input=0.0001,
-        cost_per_1k_output=0.0002,
+        ollama_model="qwen3.5:0.8b",
+        usd_per_1m_input_tokens=0.1,
+        usd_per_1m_output_tokens=0.2,
     )
 
 
 def _standard_cfg() -> ModelConfig:
     return ModelConfig(
         tier=ComplexityTier.MODERATE,
-        ollama_model="llama3.2:3b",
-        cost_per_1k_input=0.003,
-        cost_per_1k_output=0.015,
+        ollama_model="qwen3.5:4b",
+        usd_per_1m_input_tokens=3.0,
+        usd_per_1m_output_tokens=15.0,
     )
 
 
@@ -74,7 +74,7 @@ def _classification(tier: ComplexityTier = ComplexityTier.SIMPLE) -> Classificat
 
 def _response(prompt_tokens: int = 1000, completion_tokens: int = 1000) -> OllamaChatResponse:
     return OllamaChatResponse(
-        model="qwen2.5:0.5b",
+        model="qwen3.5:0.8b",
         content="hi",
         prompt_tokens=prompt_tokens,
         completion_tokens=completion_tokens,
@@ -93,6 +93,7 @@ class TestCostTracker:
     async def test_records_entry_with_actual_and_baseline_cost(self, ledger: SQLiteLedger) -> None:
         tracker = CostTracker(ledger=ledger, standard_model=_standard_cfg())
         savings = await tracker.record(
+            tenant_id="default",
             request_id="req-1",
             prompt="hi",
             classification=_classification(),
@@ -109,11 +110,12 @@ class TestCostTracker:
         assert record is not None
         assert record.routing.cost_usd == pytest.approx(0.0003)
         assert record.routing.baseline_cost_usd == pytest.approx(0.018)
-        assert record.routing.model_used == "qwen2.5:0.5b"
+        assert record.routing.model_used == "qwen3.5:0.8b"
 
     async def test_records_zero_cost_for_empty_response(self, ledger: SQLiteLedger) -> None:
         tracker = CostTracker(ledger=ledger, standard_model=_standard_cfg())
         savings = await tracker.record(
+            tenant_id="default",
             request_id="req-2",
             prompt="",
             classification=_classification(),

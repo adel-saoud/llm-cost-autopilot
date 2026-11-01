@@ -1,0 +1,281 @@
+{
+  "generated_at": "2026-10-24T21:12:06+00:00",
+  "command": "uv run --extra ml python scripts/reproduce.py",
+  "git_commit": "uncommitted",
+  "python": "3.14.4",
+  "packages": {
+    "llm-cost-autopilot": "0.1.0",
+    "numpy": "2.4.6",
+    "pydantic": "2.13.4",
+    "sentence-transformers": "5.5.1",
+    "torch": "2.12.0",
+    "transformers": "5.10.2"
+  },
+  "hardware": {
+    "cpu": "Apple M4 Pro",
+    "memory_gb": 24.0,
+    "os": "macOS-27.0.1-arm64-arm-64bit-Mach-O"
+  },
+  "ollama": {
+    "server_version": "0.40.10",
+    "models": {
+      "simple_tier": {
+        "name": "qwen3.5:0.8b",
+        "digest": "d9c89605f39abfd9e8cb4fd3c099c203d7d17e82d7765b4266a0612402d88f1c"
+      },
+      "moderate_tier": {
+        "name": "qwen3.5:4b",
+        "digest": "7f3251fa6878a78a606bcb3c074283306e5ad2ea411a7774a9dd98a4bc7f2d13"
+      }
+    }
+  },
+  "classifier_models": {
+    "stage_1": {
+      "name": "sentence-transformers/all-MiniLM-L6-v2",
+      "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41"
+    },
+    "stage_2": {
+      "name": "MoritzLaurer/deberta-v3-xsmall-zeroshot-v1.1-all-33",
+      "revision": "262ae02f29173eec1c250f90804dc7edc677dcff"
+    }
+  },
+  "simulated_prices": {
+    "source": "https://api.deepinfra.com/models/list",
+    "retrieved_on": "2026-10-24",
+    "usd_per_1m_tokens": {
+      "qwen3.5:0.8b": {
+        "usd_per_1m_input_tokens": 0.01,
+        "usd_per_1m_output_tokens": 0.05,
+        "priced_as": "Qwen/Qwen3.5-0.8B"
+      },
+      "qwen3.5:4b": {
+        "usd_per_1m_input_tokens": 0.03,
+        "usd_per_1m_output_tokens": 0.15,
+        "priced_as": "Qwen/Qwen3.5-4B"
+      }
+    }
+  },
+  "seed": 42,
+  "dataset": {
+    "path": "eval_data/nq_open_paraphrases.jsonl",
+    "sha256": "1d28ed3ce6628bc40da1ec1c5007a27486b43ad6b74103c684b91c923c0fce37",
+    "source": "google-research-datasets/nq_open, validation split, CC BY-SA 3.0",
+    "paraphrase_model": "llama3.2:3b",
+    "intents": 250
+  },
+  "temperature": 0.0,
+  "prefetch_concurrency": 4,
+  "reproducibility_note": "Answers were generated with this many concurrent Ollama calls, and concurrent inference is not bit-identical to one-at-a-time inference even at temperature 0. The response cache under data/eval/ollama_cache on the machine that produced these numbers is the reproducibility source; a fresh clone regenerates it.",
+  "metrics": {
+    "run_a_cost_reduction": {
+      "value": 0.0128,
+      "n": 1000,
+      "unit": "fraction",
+      "description": "Cost saved vs sending every request to the moderate-tier model"
+    },
+    "run_a_accuracy_paraphrase_holdout": {
+      "value": 0.364,
+      "n": 250,
+      "unit": "fraction",
+      "description": "Gold accuracy on reworded versions of warm-up questions"
+    },
+    "run_a_accuracy_intent_holdout": {
+      "value": 0.324,
+      "n": 250,
+      "unit": "fraction",
+      "description": "Gold accuracy on questions never seen in warm-up"
+    },
+    "run_a_cheap_share_qa": {
+      "value": 0.024,
+      "n": 500,
+      "unit": "fraction",
+      "description": "QA prompts routed to the simple tier"
+    },
+    "run_a_escalation_rate_qa": {
+      "value": 0.0,
+      "n": 500,
+      "unit": "fraction",
+      "description": "QA prompts escalated by a past correction"
+    },
+    "run_a_stage_1_share": {
+      "value": 0.0,
+      "n": 1000,
+      "unit": "fraction",
+      "description": "Requests decided by stage 1 (anchors)"
+    },
+    "run_a_verifier_agreement": {
+      "value": 0.9762,
+      "n": 42,
+      "unit": "fraction",
+      "description": "Cheap answers the verifier accepted, over requests served by the simple tier"
+    },
+    "run_a_corrections": {
+      "value": 1,
+      "n": 1250,
+      "unit": "count",
+      "description": "Corrections recorded over warm-up and measured traffic"
+    },
+    "run_b_cost_reduction": {
+      "value": 0.0128,
+      "n": 1000,
+      "unit": "fraction",
+      "description": "Cost saved vs sending every request to the moderate-tier model"
+    },
+    "run_b_accuracy_paraphrase_holdout": {
+      "value": 0.364,
+      "n": 250,
+      "unit": "fraction",
+      "description": "Gold accuracy on reworded versions of warm-up questions"
+    },
+    "run_b_accuracy_intent_holdout": {
+      "value": 0.324,
+      "n": 250,
+      "unit": "fraction",
+      "description": "Gold accuracy on questions never seen in warm-up"
+    },
+    "run_b_cheap_share_qa": {
+      "value": 0.024,
+      "n": 500,
+      "unit": "fraction",
+      "description": "QA prompts routed to the simple tier"
+    },
+    "run_b_escalation_rate_qa": {
+      "value": 0.0,
+      "n": 500,
+      "unit": "fraction",
+      "description": "QA prompts escalated by a past correction"
+    },
+    "run_b_stage_1_share": {
+      "value": 0.0,
+      "n": 1000,
+      "unit": "fraction",
+      "description": "Requests decided by stage 1 (anchors)"
+    },
+    "run_b_verifier_agreement": {
+      "value": 0.9762,
+      "n": 42,
+      "unit": "fraction",
+      "description": "Cheap answers the verifier accepted, over requests served by the simple tier"
+    },
+    "run_b_corrections": {
+      "value": 1,
+      "n": 1250,
+      "unit": "count",
+      "description": "Corrections recorded over warm-up and measured traffic"
+    },
+    "paraphrase_gain_points": {
+      "value": 0.0,
+      "n": 125,
+      "unit": "points",
+      "description": "B - A gold accuracy, paraphrase hold-out, over intents"
+    },
+    "paraphrase_gain_ci_low_points": {
+      "value": 0.0,
+      "n": 125,
+      "unit": "points",
+      "description": "95% bootstrap CI low"
+    },
+    "paraphrase_gain_ci_high_points": {
+      "value": 0.0,
+      "n": 125,
+      "unit": "points",
+      "description": "95% bootstrap CI high"
+    },
+    "intent_gain_points": {
+      "value": 0.0,
+      "n": 125,
+      "unit": "points",
+      "description": "B - A gold accuracy, intent hold-out, over intents"
+    },
+    "intent_gain_ci_low_points": {
+      "value": 0.0,
+      "n": 125,
+      "unit": "points",
+      "description": "95% bootstrap CI low"
+    },
+    "intent_gain_ci_high_points": {
+      "value": 0.0,
+      "n": 125,
+      "unit": "points",
+      "description": "95% bootstrap CI high"
+    },
+    "run_b_escalations": {
+      "value": 0,
+      "n": 1000,
+      "unit": "count",
+      "description": "Measured requests escalated in run B"
+    },
+    "run_b_useful_escalations": {
+      "value": 0,
+      "n": 0,
+      "unit": "count",
+      "description": "Escalations that turned a wrong cheap answer into a right one"
+    },
+    "run_b_false_escalations": {
+      "value": 0,
+      "n": 0,
+      "unit": "count",
+      "description": "Escalations of a cheap answer that was already right"
+    },
+    "verifier_precision": {
+      "value": 1.0,
+      "n": 1,
+      "unit": "fraction",
+      "description": "Run A corrections where the cheap answer was wrong against gold"
+    },
+    "verifier_recall": {
+      "value": 0.0526,
+      "n": 19,
+      "unit": "fraction",
+      "description": "Wrong cheap QA answers the verifier flagged, run A warm-up and measured"
+    },
+    "simple_model_accuracy_qa": {
+      "value": 0.168,
+      "n": 500,
+      "unit": "fraction",
+      "description": "Gold accuracy of qwen3.5:0.8b on every measured QA prompt"
+    },
+    "moderate_model_accuracy_qa": {
+      "value": 0.356,
+      "n": 500,
+      "unit": "fraction",
+      "description": "Gold accuracy of qwen3.5:4b on every measured QA prompt"
+    },
+    "stage_1_median_latency_ms": {
+      "value": 0.0,
+      "n": 0,
+      "unit": "ms",
+      "description": "Median classifier latency when stage 1 decides, run A"
+    },
+    "stage_2_median_latency_ms": {
+      "value": 41.9983,
+      "n": 1000,
+      "unit": "ms",
+      "description": "Median classifier latency when stage 2 decides, run A"
+    }
+  },
+  "metrics_latency_note": "stage_1 and stage_2 latencies are measured inside the evaluation, on a machine shared with other workloads; tier_latency is the dedicated measurement",
+  "tier_latency": {
+    "measured_at": "2026-10-24T20:43:06+00:00",
+    "other_ollama_models_loaded": [],
+    "conditions": "quiet",
+    "tiers": {
+      "simple": {
+        "model": "qwen3.5:0.8b",
+        "n": 20,
+        "median_latency_ms": 791.9,
+        "p95_latency_ms": 1374.2,
+        "median_output_tokens": 144.0,
+        "median_output_tokens_per_s": 187.0
+      },
+      "moderate": {
+        "model": "qwen3.5:4b",
+        "n": 20,
+        "median_latency_ms": 3437.4,
+        "p95_latency_ms": 5827.5,
+        "median_output_tokens": 219.0,
+        "median_output_tokens_per_s": 65.4
+      }
+    }
+  }
+}

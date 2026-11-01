@@ -1,4 +1,4 @@
-"""Pure savings math — no I/O, no dependencies on the ledger."""
+"""Pure savings math: no I/O, no dependencies on the ledger."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ class Savings(BaseModel):
     actual_cost_usd: float = Field(ge=0.0)
     baseline_cost_usd: float = Field(ge=0.0)
     saved_usd: float
-    saved_pct: float = Field(description="0..100 — negative if autopilot was more expensive.")
+    saved_pct: float = Field(description="0..100: negative if autopilot was more expensive.")
 
 
 def compute_savings(*, actual_cost_usd: float, baseline_cost_usd: float) -> Savings:
