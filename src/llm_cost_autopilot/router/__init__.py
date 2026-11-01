@@ -1,30 +1,35 @@
-"""Model registry and Ollama routing.
+"""Model registry and Ollama adapter.
+
+Picking a model is a registry lookup once the classifier has chosen a tier;
+the routing work happens in ``classifier``.
 
 Public surface:
-    ModelConfig         — frozen per-tier configuration (model id, simulated cost).
-    ModelRegistry       — immutable map of tier → ModelConfig.
-    build_default_registry — wire a registry from current settings.
-    route               — pick the registry entry for a complexity tier.
-    OllamaClient        — async adapter for the local Ollama HTTP API.
-    OllamaChatResponse  — structured response with token usage.
+    ModelConfig             frozen per-tier configuration (model id, simulated price).
+    MODEL_PRICES            simulated price per Ollama model, with its source.
+    ModelRegistry           immutable map of tier to ModelConfig.
+    build_default_registry  build the registry from current settings.
+    OllamaClient            async adapter for the local Ollama HTTP API.
+    OllamaChatResponse      structured response with token usage.
 """
 
-from llm_cost_autopilot.router.decision import build_default_registry, route
-from llm_cost_autopilot.router.models import ModelConfig, ModelRegistry
+from llm_cost_autopilot.router.models import ModelConfig, ModelRegistry, build_default_registry
 from llm_cost_autopilot.router.ollama import (
     ChatMessage,
     OllamaChatResponse,
     OllamaClient,
     OllamaError,
 )
+from llm_cost_autopilot.router.pricing import MODEL_PRICES, ModelPrice, price_for
 
 __all__ = [
+    "MODEL_PRICES",
     "ChatMessage",
     "ModelConfig",
+    "ModelPrice",
     "ModelRegistry",
     "OllamaChatResponse",
     "OllamaClient",
     "OllamaError",
     "build_default_registry",
-    "route",
+    "price_for",
 ]
