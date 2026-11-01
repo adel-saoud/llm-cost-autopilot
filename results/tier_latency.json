@@ -1,0 +1,23 @@
+{
+  "measured_at": "2026-10-24T20:43:06+00:00",
+  "other_ollama_models_loaded": [],
+  "conditions": "quiet",
+  "tiers": {
+    "simple": {
+      "model": "qwen3.5:0.8b",
+      "n": 20,
+      "median_latency_ms": 791.9,
+      "p95_latency_ms": 1374.2,
+      "median_output_tokens": 144.0,
+      "median_output_tokens_per_s": 187.0
+    },
+    "moderate": {
+      "model": "qwen3.5:4b",
+      "n": 20,
+      "median_latency_ms": 3437.4,
+      "p95_latency_ms": 5827.5,
+      "median_output_tokens": 219.0,
+      "median_output_tokens_per_s": 65.4
+    }
+  }
+}
