@@ -1,22 +1,23 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["uv_build>=0.13.5,<0.14"]
+build-backend = "uv_build"
 
 [project]
 name = "llm-cost-autopilot"
 version = "0.1.0"
-description = "Two-stage zero-shot complexity classifier that routes LLM requests to the cheapest capable model and records every routing mistake for threshold tuning."
+description = "Two-stage zero-shot classifier that routes LLM requests to the cheapest capable model, verifies cheap answers in the background and escalates prompts similar to past misroutes."
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 authors = [{ name = "Adel Saoud" }]
 keywords = ["llm", "routing", "cost-optimization", "zero-shot", "ollama", "huggingface"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Software Development :: Libraries :: Application Frameworks",
 ]
 
@@ -29,28 +30,31 @@ dependencies = [
     "uvicorn[standard]>=0.32",
     "aiosqlite>=0.21",
     "tenacity>=9.0",
+    # Correction-memory nearest-neighbour search and the ML backends' vector math.
+    "numpy>=1.26",
     # Used by scripts/demo_autopilot.py + scripts/load_test.py for terminal UI.
     "rich>=14.0",
 ]
 
 [project.optional-dependencies]
 ml = [
-    # Heavy ML deps — required at runtime, optional so tests stay fast.
+    # Heavy ML deps: required at runtime, optional so tests stay fast.
     "sentence-transformers>=3.0",
     "transformers>=4.45",
     "torch>=2.4",
-    "numpy>=1.26",
 ]
 dashboard = ["streamlit>=1.45", "plotly>=6.0", "pandas>=2.2"]
+
+[dependency-groups]
 dev = [
-    "pytest>=8.3",
-    "pytest-asyncio>=0.24",
-    "pytest-cov>=6.0",
-    "pytest-mock>=3.14",
-    "ruff>=0.11",
-    "pyright>=1.1.400",
-    "pre-commit>=4.0",
-    "numpy>=1.26",
+    "pytest>=9.1",
+    "pytest-asyncio>=1.4",
+    "pytest-cov>=7.1",
+    "pytest-mock>=3.15",
+    "ruff>=0.17.2,<0.18",
+    "pyright==1.1.414",
+    "pre-commit>=4.7",
+    "commitizen>=4.19.3,<4.20",
 ]
 
 [project.urls]
@@ -58,60 +62,19 @@ Homepage = "https://github.com/adel-saoud/llm-cost-autopilot"
 Repository = "https://github.com/adel-saoud/llm-cost-autopilot"
 Issues = "https://github.com/adel-saoud/llm-cost-autopilot/issues"
 
-[project.scripts]
-autopilot = "llm_cost_autopilot.cli:app"
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/llm_cost_autopilot"]
-
 # ── Ruff: lint + format ─────────────────────────────────────────────────────
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py312"
 src = ["src", "tests"]
 
 [tool.ruff.lint]
-select = [
-    "E", "W",     # pycodestyle
-    "F",          # pyflakes
-    "I",          # isort
-    "B",          # bugbear
-    "C4",         # comprehensions
-    "UP",         # pyupgrade
-    "SIM",        # simplify
-    "RUF",        # ruff-specific
-    "N",          # pep8-naming
-    "ANN",        # type annotations
-    "S",          # bandit (security)
-    "PT",         # pytest style
-    "TID",        # tidy imports
-    "PL",         # pylint
-    "TRY",        # tryceratops
-]
-ignore = [
-    "ANN401",  # allow Any in narrow cases (e.g. HF pipeline outputs)
-    "PLR0912", # too many branches
-    "PLR0913", # too many arguments
-    "PLR0915", # too many statements
-    "PLR2004", # magic value comparisons — readable in context
-    "PLC0415", # local imports — used intentionally for lazy ML imports
-    "PLW0108", # unnecessary lambda — pydantic Field default_factory needs callables
-    "TRY003",  # long exception messages are fine
-    "TRY004",  # ValueError vs TypeError — domain choice
-    "TRY301",  # abstract raise to inner func
-    "RUF001",  # ambiguous unicode in strings — intentional
-    "RUF002",  # ambiguous unicode in docstrings — intentional
-    "RUF003",  # ambiguous unicode in comments — intentional
-    "S101",    # assert is fine
-]
+select = ["E", "F", "W", "I", "B", "UP", "S", "SIM", "RUF"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = ["ANN", "PLR2004", "S101", "S105", "S106"]
-# Demo / load-test scripts use `random` for synthetic data — not crypto.
+"tests/**/*.py" = ["S101", "S105", "S106"]
+# Demo / load-test scripts use `random` for synthetic data: not crypto.
 "scripts/**/*.py" = ["S311"]
-
-[tool.ruff.lint.pydocstyle]
-convention = "google"
 
 [tool.ruff.format]
 quote-style = "double"
@@ -122,17 +85,17 @@ docstring-code-format = true
 [tool.pyright]
 include = ["src", "tests"]
 # Excluded from strict checks:
-#   * dashboard/app.py — streamlit/plotly/pandas lack type stubs
-#   * classifier/_real_backends.py — wraps the optional ML extras
-#     (sentence-transformers, transformers); those imports resolve only when
-#     `uv sync --extra ml` has been run, which we never do in CI/tests.
+#   * dashboard/app.py: streamlit/plotly/pandas lack type stubs
+#   * classifier/huggingface_backends.py and verifier/embedding_scorer.py:
+#     wrap the optional ML extras (sentence-transformers, transformers); those
+#     imports resolve only after `uv sync --extra ml`, which CI never runs.
 exclude = [
     "src/llm_cost_autopilot/dashboard/app.py",
-    "src/llm_cost_autopilot/classifier/_real_backends.py",
-    "src/llm_cost_autopilot/verifier/_real_scorer.py",
+    "src/llm_cost_autopilot/classifier/huggingface_backends.py",
+    "src/llm_cost_autopilot/verifier/embedding_scorer.py",
 ]
 typeCheckingMode = "strict"
-pythonVersion = "3.11"
+pythonVersion = "3.12"
 reportMissingTypeStubs = "warning"
 reportUnknownMemberType = "warning"
 reportUnknownArgumentType = "warning"
@@ -140,7 +103,7 @@ reportUnknownVariableType = "warning"
 
 # `pytest.approx` is declared with `Unknown` parameter types in pytest's
 # stubs, which makes pyright noisy on every test assertion that uses it.
-# Silence those reports inside `tests/` only — the production type bar in
+# Silence those reports inside `tests/` only: the production type bar in
 # `src/` stays at the global level.
 [[tool.pyright.executionEnvironments]]
 root = "tests"
@@ -154,7 +117,7 @@ reportUnknownParameterType = "none"
 
 # ── Pytest ───────────────────────────────────────────────────────────────────
 [tool.pytest.ini_options]
-minversion = "8.0"
+minversion = "9.0"
 addopts = [
     "-ra",
     "--strict-markers",
@@ -162,6 +125,7 @@ addopts = [
     "--cov=llm_cost_autopilot",
     "--cov-report=term-missing",
     "--cov-report=xml",
+    "--cov-fail-under=90",
 ]
 testpaths = ["tests"]
 asyncio_mode = "auto"
@@ -174,9 +138,9 @@ source = ["src/llm_cost_autopilot"]
 branch = true
 omit = [
     "src/llm_cost_autopilot/dashboard/*",
-    # Optional ML extras — exercised only by demo/load-test scripts, not tests.
-    "src/llm_cost_autopilot/classifier/_real_backends.py",
-    "src/llm_cost_autopilot/verifier/_real_scorer.py",
+    # Need the [ml] extra: run by the app lifespan and the eval script, not by tests.
+    "src/llm_cost_autopilot/classifier/huggingface_backends.py",
+    "src/llm_cost_autopilot/verifier/embedding_scorer.py",
 ]
 
 [tool.coverage.report]
@@ -186,4 +150,14 @@ exclude_lines = [
     "if TYPE_CHECKING:",
     "raise NotImplementedError",
 ]
-fail_under = 85
+
+# `cz bump` reads and writes the version in pyproject.toml and uv.lock (the
+# "uv" provider), keeps __version__ in step, and writes CHANGELOG.md and the tag.
+# major_version_zero keeps breaking changes on the minor number until 1.0.
+[tool.commitizen]
+name = "cz_conventional_commits"
+version_provider = "uv"
+version_files = ["src/llm_cost_autopilot/__init__.py:__version__"]
+tag_format = "v$version"
+update_changelog_on_bump = true
+major_version_zero = true
