@@ -44,8 +44,8 @@ All notable changes to this project are documented here. The format follows
 - Feedback-loop evaluation on NQ-Open questions with model-written
   paraphrases, scored against gold answers (`scripts/build_feedback_eval_set.py`,
   `scripts/eval_feedback_loop.py`, report in `docs/eval-feedback-loop.md`).
-- Gitleaks, pyright and commitizen pre-commit hooks; `cz bump` writes this
-  changelog and the tag.
+- Gitleaks, pyright and commitizen pre-commit hooks; `cz bump` writes the
+  version and the tag; this changelog stays hand-written.
 - Dependabot for uv, GitHub Actions and pre-commit hooks, monthly and grouped.
 - CI job that builds the wheel, installs it in a clean venv and builds the app.
 - `docs/api.md`, `docs/configuration.md`, `docs/project-structure.md`, and
