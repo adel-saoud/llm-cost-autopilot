@@ -49,7 +49,7 @@ served answer only (`docs/configuration.md`).
   `run_a_cost_reduction` in `results/manifest.json`, n=1000). The list prices
   differ by 3x (`router/pricing.py`), against 30x to 75x before, and the
   classifier sends almost every factual question to `moderate`
-  (`run_a_cheap_share_qa` = 2.4%, n=500).
+  (`run_a_cheap_share_qa` = 2.6%, n=500).
 - On the same 500 questions `qwen3.5:0.8b` scores 16.8% and `qwen3.5:4b`
   35.6% gold accuracy (`simple_model_accuracy_qa`, `moderate_model_accuracy_qa`,
   n=500), so a request routed to the cheap model trades a large quality drop

@@ -59,7 +59,7 @@ inside the FastAPI lifespan.
 - **Tied to HuggingFace ecosystem**: both stages depend on HF models being
   downloadable on first run. The Docker image caches them in a volume.
 - **Measured, 2026-10-24**: on the NQ-Open evaluation stage 1 decided 0% of
-  requests (`run_a_stage_1_share`, n=1000) and stage 2 took a median of 43 ms
+  requests (`run_a_stage_1_share`, n=1000) and stage 2 took a median of 28 ms
   (`stage_2_median_latency_ms`, n=1000, on a machine shared with other work),
-  both in `results/manifest.json`. Stage 2 sent 488 of 500 factual questions
-  to the moderate tier (`run_a_cheap_share_qa` = 2.4%).
+  both in `results/manifest.json`. Stage 2 sent 487 of 500 factual questions
+  to the moderate tier (`run_a_cheap_share_qa` = 2.6%).

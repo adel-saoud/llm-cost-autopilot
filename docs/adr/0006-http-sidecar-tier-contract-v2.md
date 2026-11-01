@@ -45,7 +45,7 @@ lets the gateway pin a copy and fail its own CI when the producer changes
   longer served and has no alias, since the tier set it promised no longer
   exists (`api/route.py`, CHANGELOG).
 - One extra network hop per gateway request. The endpoint makes no model
-  call, so its cost is one classification (median 43 ms in stage 2,
+  call, so its cost is one classification (median 28 ms in stage 2,
   `stage_2_median_latency_ms` in `results/manifest.json`, measured on a
   shared machine). When the call fails the gateway routes as if autopilot
   were absent (README, Part of a system).

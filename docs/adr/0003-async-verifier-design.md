@@ -62,7 +62,7 @@ code can drain only those tasks (`asyncio.all_tasks()` filtered by name).
   `skipped_overloaded` (`verifier/async_verifier.py`, CHANGELOG).
 - **Measured, 2026-10-24**: against gold answers, run A recorded 1
   correction, which was a real error (`verifier_precision` 100%, n=1), and
-  flagged 5.3% of the cheap model's wrong answers (`verifier_recall`, n=19),
+  flagged 5.0% of the cheap model's wrong answers (`verifier_recall`, n=20),
   in `results/manifest.json`. The earlier run on `qwen2.5:0.5b` and
   `llama3.2:3b` measured 100% precision and 29% recall (CHANGELOG). See
   [ADR 0007](0007-keep-correction-memory-after-negative-result.md).
