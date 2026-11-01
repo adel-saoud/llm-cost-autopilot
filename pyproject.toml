@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "llm-cost-autopilot"
-version = "0.1.0"
+version = "0.2.0"
 description = "Two-stage zero-shot classifier that routes LLM requests to the cheapest capable model, verifies cheap answers in the background and escalates prompts similar to past misroutes."
 readme = "README.md"
 license = "MIT"
